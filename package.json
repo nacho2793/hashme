@@ -8,14 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nacho2793/hashme.git"
+    "url": "https://github.com/nacho2793/hashme"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/nacho2793/hashme/issues"
   },
-  "homepage": "https://github.com/nacho2793/hashme#readme",
+  "homepage": "https://github.com/nacho2793/hashme",
   "dependencies": {
     "fs-extra": "^5.0.0",
     "ganache-cli": "^6.0.3",
