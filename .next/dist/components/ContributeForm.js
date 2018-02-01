@@ -38,7 +38,7 @@ var _react2 = _interopRequireDefault(_react);
 
 var _semanticUiReact = require('semantic-ui-react');
 
-var _campaign = require('./../ethereum/campaign');
+var _campaign = require('../ethereum/campaign');
 
 var _campaign2 = _interopRequireDefault(_campaign);
 
