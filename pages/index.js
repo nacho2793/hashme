@@ -7,19 +7,43 @@ import campaign from "../ethereum/campaign";
 
 class CampaignIndex extends Component {
     static async getInitialProps() {
-        let camp = [];
+        let info = [];
+        let _campaign = {};
+        let extra;
         const campaigns = await factory.methods.getTokensDeployed().call();
-        console.log(campaigns);
-        return {campaigns};
-    }
-    renderCampaigns() {
-        const items = this.props.campaigns.map((address) => {
+        const promises = campaigns.map(async (address) => {
+            const info = await campaign(address).methods.getSummary().call();
             return {
-                header: address,
-                description: (
-                    <Link route={`/campaigns/${address}`}>
-                        <a>View Campaign</a>
+                address: address,
+                name: info[0],
+                symbol: info[1]
+            }
+        });
+        return Promise.all(promises);
+    }
 
+    renderCampaigns() {
+        let campaigns = [];
+        let nCampaigns = 0;
+        let valid = true;
+        const props = this.props;
+        while(valid){
+            if(props[nCampaigns]){
+                campaigns.push(props[nCampaigns]);
+                nCampaigns+=1;
+            }else{
+                valid=false;
+            }
+        }
+        const items = campaigns.map((_campaign) => {
+            if(!_campaign.address){
+                return null;
+            }
+            return {
+                header: _campaign.name,
+                description: (
+                    <Link route={`/campaigns/${_campaign.address}`}>
+                        <a>View Campaign</a>
                     </Link>
                 ),
                 fluid: true
@@ -46,6 +70,7 @@ class CampaignIndex extends Component {
                         </a>
                     </Link>
                     { this.renderCampaigns() }
+
                 </div>
             </Layout>
         );
