@@ -12,44 +12,23 @@ class CampaignShow extends Component {
         const summary = await campaign.methods.getSummary().call();
         return {
             address: props.query.address,
-            minimumContribution: summary[0],
-            balance: summary[1],
-            requestsCount: summary[2],
-            approversCount: summary[3],
-            manager: summary[4]
+            name: summary[0],
+            symbol: summary[1],
+            rate: summary[2],
+            description: summary[3]
         };
     }
 
     renderCards() {
         const {
-            balance, manager, minimumContribution, requestsCount, approversCount
+            name, symbol, address, description
         } = this.props;
         const items = [
             {
-                header: manager,
-                meta: 'Address of Manager',
-                description: 'The manager created this campaign and can create requests to withdraw money',
+                header: name + ' (' + symbol + ')',
+                meta: address,
+                description: description,
                 style: { overflowWrap: 'break-word'}
-            },
-            {
-                header: minimumContribution,
-                meta: 'Minimum Contribution',
-                description: 'You must contribute at least this much wei to become an approver'
-            },
-            {
-                header: requestsCount,
-                meta: 'Number of requests',
-                description: 'A request tries to withdraw moneyt from the contract. Requests must be approved by approvers'
-            },
-            {
-                header: approversCount,
-                meta: 'Number of approvers',
-                description: 'Number of people who have already donated to this campaign'
-            },
-            {
-                header: web3.utils.fromWei(balance, 'ether'),
-                meta: 'Campaign Balance (ether)',
-                description: 'The balance is how much money this campaign has left to spend.'
             }
         ];
         return <Card.Group items={items}/>

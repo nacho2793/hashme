@@ -1,13 +1,16 @@
 import React, { Component } from 'react';
 import Layout from '../../components/Layout';
-import { Form, Button, Input, Message } from 'semantic-ui-react';
+import { Form, Button, Input, Message, Grid, TextArea } from 'semantic-ui-react';
 import factory from '../../ethereum/factory';
 import web3 from '../../ethereum/web3';
 import { Router } from '../../routes';
 
 class CampaignNew extends Component {
     state = {
-        minimumContribution: '',
+        name: '',
+        symbol: '',
+        tokens: 0,
+        description: '',
         errorMessage: '',
         loading: false
     };
@@ -17,7 +20,7 @@ class CampaignNew extends Component {
         try {
             const accounts = await web3.eth.getAccounts();
             await factory.methods
-                .createCampaign(this.state.minimumContribution)
+                .newToken(this.state.tokens, this.state.name, this.state.symbol, this.state.description)
                 .send({
                     from: accounts[0]
                 });
@@ -31,16 +34,46 @@ class CampaignNew extends Component {
     render() {
         return(
             <Layout>
-                <h3>Create a Campaign</h3>
+                <h3>Create a ICO Campaign</h3>
                 <Form onSubmit={this.onSubmit} error={!!this.state.errorMessage}>
                     <Form.Field>
-                        <label>Minimum contribution</label>
-                        <Input
-                            label="wei"
-                            labelPosition="right"
-                            value={this.state.minimumContribution}
-                            onChange={event=> this.setState({minimumContribution:event.target.value})}
-                        />
+                        <Grid divided='vertically'>
+                            <Grid.Row columns={3}>
+                                <Grid.Column>
+                                    <label>Number of tokens (millions)</label>
+                                    <Input
+                                        type="number"
+                                        value={this.state.tokens}
+                                        onChange={event=> this.setState({tokens:event.target.value})}
+                                    />
+                                    <label>Tokens: {this.state.tokens*1000000} {this.state.symbol}</label>
+                                </Grid.Column>
+                                <Grid.Column>
+                                    <label>Token name</label>
+                                    <Input
+                                        value={this.state.name}
+                                        onChange={event=> this.setState({name:event.target.value})}
+                                    />
+                                </Grid.Column>
+                                <Grid.Column>
+                                    <label>Token Symbol</label>
+                                    <Input
+                                        value={this.state.symbol}
+                                        onChange={event=> this.setState({symbol:event.target.value})}
+                                    />
+                                </Grid.Column>
+                            </Grid.Row>
+                            <Grid.Row columns={1}>
+                                <Grid.Column>
+                                    <label>Description</label>
+                                    <TextArea
+                                        placeholder='Tell us about what you are raising for...'
+                                        value={this.state.description}
+                                        onChange={event=> this.setState({description:event.target.value})}
+                                        style={{ minHeight: 100 }} />
+                                </Grid.Column>
+                            </Grid.Row>
+                        </Grid>
                     </Form.Field>
                     <Message
                         error
