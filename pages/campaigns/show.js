@@ -9,25 +9,29 @@ import { Link } from '../../routes';
 class CampaignShow extends Component {
     static async getInitialProps(props) {
         const campaign = Campaign(props.query.address);
+        const accounts = await web3.eth.getAccounts();
+        const balance = await campaign.methods.balanceOf(accounts[0]).call();
         const summary = await campaign.methods.getSummary().call();
         return {
             address: props.query.address,
             name: summary[0],
             symbol: summary[1],
             rate: summary[2],
-            description: summary[3]
+            description: summary[3],
+            balance: balance
         };
     }
 
     renderCards() {
         const {
-            name, symbol, address, description
+            name, symbol, address, description, balance
         } = this.props;
         const items = [
             {
-                header: name + ' (' + symbol + ')',
+                header: name + ' ( '+ symbol + ' )',
                 meta: address,
                 description: description,
+                extra: "You have "+balance+symbol+" in your account.",
                 style: { overflowWrap: 'break-word'}
             }
         ];

@@ -191,3 +191,5 @@ contract TokenFactory {
         return tokens;
     }
 }
+
+//http://docs.ethereum-alarm-clock.com/en/latest/quickstart.html
