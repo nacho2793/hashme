@@ -11,12 +11,36 @@ contract TokenERC20 {
     uint256 public tokensCreated;
     uint256 public totalSupply;
     uint256 public constant RATE = 18000;
+    uint256 public constant eth_to_wei = 1000000000000000000;
     address public owner;
     string public ICOdescription;
+    address public CEO;
+    uint public timeZero;
+    uint public period;
+    bool public allowToBuy;
+    uint public raised;
+    uint public retrieved=0;
+    uint public retrieveAmount;
+    address public token;
 
     // This creates an array with all balances
     mapping (address => uint256) public balanceOf;
     mapping (address => mapping (address => uint256)) public allowance;
+    
+    modifier protected() {
+        require(msg.sender == owner);
+        _;
+    }
+    modifier buy() {
+        require(allowToBuy);
+        _;
+    }
+    modifier allowToRetrieve() {
+        require(msg.sender == CEO);
+        require(block.timestamp>period);
+        _;
+    }
+    
 
     function () payable {
         createTokens();
@@ -26,16 +50,42 @@ contract TokenERC20 {
         return totalSupply-tokensCreated;
     }
 
-    function createTokens() public payable {
+    function createTokens() public buy payable {
         require(msg.value>0);
         uint tokens = (RATE * msg.value) / 1000000000000000000;
         require(balanceOf[msg.sender] + tokens > balanceOf[msg.sender]);
         require(tokens + tokensCreated <= totalSupply);
         balanceOf[msg.sender] = balanceOf[msg.sender] + tokens;
-        owner.transfer(msg.value);
+        token.transfer(msg.value);
         tokensCreated += tokens;
     }
 
+    function closeFundRaising() protected public {
+        allowToBuy = false;
+        uint qtty;
+        qtty = tokensCreated*eth_to_wei/RATE;
+        qtty = qtty * 19 / 20; //-5% of the raised
+        raised = qtty;
+        timeZero = block.timestamp;
+        period = 10;
+        approve( CEO, raised);
+        retrieveAmount = raised / 12;
+    }
+    
+    function retrieve()  public payable returns(uint) {
+        uint passed = block.timestamp - timeZero;
+        uint periods = passed / period;
+        uint times = periods - retrieved;
+        if (times>12-retrieved) {
+            times = 12-retrieved;
+        }
+        require(times>0);
+        retrieved += times;
+        uint value = retrieveAmount * times;
+        transferFrom(owner, CEO, value);
+        return times;
+    }
+    
     // This generates a public event on the blockchain that will notify clients
     event Transfer(address indexed from, address indexed to, uint256 value);
 
@@ -52,7 +102,8 @@ contract TokenERC20 {
         string tokenName,
         string tokenSymbol,
         string description,
-        address manager
+        address manager,
+        address startupCEO
     ) public {
         totalSupply = initialSupply * 10 ** uint256(decimals);  // Update total supply with the decimal amount
         balanceOf[msg.sender] = totalSupply;                // Give the creator all initial tokens
@@ -60,6 +111,10 @@ contract TokenERC20 {
         symbol = tokenSymbol;                               // Set the symbol for display purposes
         owner = manager;
         ICOdescription = description;
+        CEO = startupCEO;
+        allowToBuy = true;
+        retrieved = 0;
+        token = address (this);
     }
 
     /**
@@ -183,8 +238,8 @@ contract TokenERC20 {
 
 contract TokenFactory {
     address[] public tokens;
-    function newToken(uint numberOfTokens, string coinName, string coinSymbol, string description) public {
-        address newCampaign = new TokenERC20(numberOfTokens, coinName, coinSymbol, description, msg.sender);
+    function newToken(uint numberOfTokens, string coinName, string coinSymbol, string description, address CEO) public {
+        address newCampaign = new TokenERC20(numberOfTokens, coinName, coinSymbol, description, msg.sender, CEO);
         tokens.push(newCampaign);
     }
     function getTokensDeployed() public view returns (address[]){
@@ -192,4 +247,3 @@ contract TokenFactory {
     }
 }
 
-//http://docs.ethereum-alarm-clock.com/en/latest/quickstart.html
