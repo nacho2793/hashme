@@ -7,19 +7,20 @@ contract TokenERC20 {
     string public name;
     string public symbol;
     uint8 public decimals = 6;
-    // 18 decimals is the strongly suggested default, avoid changing it
-    uint256 public tokensCreated;
+    
     uint256 public totalSupply;
     uint256 public constant RATE = 18000;
     uint256 public constant eth_to_wei = 1000000000000000000;
+    
     address public owner;
-    string public ICOdescription;
     address public CEO;
+    
     uint public timeZero;
-    uint public period;
+    uint public timeLapse;
     bool public allowToBuy;
+    
     uint public raised;
-    uint public retrieved=0;
+    uint public periodsRetrieved=0;
     uint public retrieveAmount;
     address public token;
 
@@ -35,56 +36,55 @@ contract TokenERC20 {
         require(allowToBuy);
         _;
     }
-    modifier allowToRetrieve() {
-        require(msg.sender == CEO);
-        require(block.timestamp>period);
+    modifier timeRestricted() {
+        uint timePassed = block.timestamp - timeZero;
+        require(timePassed>=timeLapse);
         _;
     }
     
 
     function () payable {
-        createTokens();
+        buyTokens();
     }
 
-    function tokensLeft() public view returns(uint){
-        return totalSupply-tokensCreated;
-    }
-
-    function createTokens() public buy payable {
+    function buyTokens() public buy payable {
         require(msg.value>0);
         uint tokens = (RATE * msg.value) / 1000000000000000000;
-        require(balanceOf[msg.sender] + tokens > balanceOf[msg.sender]);
-        require(tokens + tokensCreated <= totalSupply);
-        balanceOf[msg.sender] = balanceOf[msg.sender] + tokens;
-        token.transfer(msg.value);
-        tokensCreated += tokens;
-    }
-
-    function closeFundRaising() protected public {
-        allowToBuy = false;
-        uint qtty;
-        qtty = tokensCreated*eth_to_wei/RATE;
-        qtty = qtty * 19 / 20; //-5% of the raised
-        raised = qtty;
-        timeZero = block.timestamp;
-        period = 10;
-        approve( CEO, raised);
-        retrieveAmount = raised / 12;
+        allowToBuy(owner, msg.sender, tokens);
+        transferFrom(owner, msg.sender, tokens);
+        raised += msg.value;
     }
     
-    function retrieve()  public payable returns(uint) {
-        uint passed = block.timestamp - timeZero;
-        uint periods = passed / period;
-        uint times = periods - retrieved;
-        if (times>12-retrieved) {
-            times = 12-retrieved;
+    function allowToBuy(address tokenHolder, address tokenBuyer, uint value) internal {
+        require(balanceOf[tokenHolder]>=value);
+        allowance[tokenHolder][tokenBuyer] = value;
+    }
+    
+    function closeFundRaising(uint lapse) protected public {
+        //require(lapse > 60);
+        allowToBuy = false;
+        uint commision = raised * 1/20;
+        owner.transfer(commision);
+        raised = raised *  19/20;
+        retrieveAmount = raised * 1/12;
+        timeZero = block.timestamp;
+        timeLapse = lapse;
+        totalSupply = uint256(totalSupply - balanceOf[owner]);
+    }
+    
+    function retrieve()  public timeRestricted returns(uint) {
+        uint timePassed = block.timestamp - timeZero;
+        uint periods = timePassed / timeLapse;
+        uint times = periods - periodsRetrieved;
+        if (times>12-periodsRetrieved) {
+            times = 12-periodsRetrieved;
         }
         require(times>0);
-        retrieved += times;
+        periodsRetrieved += times;
         uint value = retrieveAmount * times;
-        transferFrom(owner, CEO, value);
-        return times;
+        CEO.transfer(value);
     }
+    
     
     // This generates a public event on the blockchain that will notify clients
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -101,20 +101,16 @@ contract TokenERC20 {
         uint256 initialSupply,
         string tokenName,
         string tokenSymbol,
-        string description,
         address manager,
         address startupCEO
-    ) public {
-        totalSupply = initialSupply * 10 ** uint256(decimals);  // Update total supply with the decimal amount
-        balanceOf[msg.sender] = totalSupply;                // Give the creator all initial tokens
-        name = tokenName;                                   // Set the name for display purposes
-        symbol = tokenSymbol;                               // Set the symbol for display purposes
-        owner = manager;
-        ICOdescription = description;
-        CEO = startupCEO;
+    ) public {                           
+        owner = manager;            
+        name = tokenName;                                  
+        symbol = tokenSymbol; 
         allowToBuy = true;
-        retrieved = 0;
-        token = address (this);
+        totalSupply = initialSupply * 10 ** uint256(decimals); 
+        balanceOf[owner] = totalSupply;   
+        CEO = startupCEO;
     }
 
     /**
@@ -199,6 +195,8 @@ contract TokenERC20 {
         }
     }
 
+
+
     /**
      * Destroy tokens
      *
@@ -231,15 +229,13 @@ contract TokenERC20 {
         Burn(_from, _value);
         return true;
     }
-    function getSummary() public view returns(string, string, uint, string) {
-        return (name, symbol, RATE, ICOdescription);
-    }
+    
 }
 
 contract TokenFactory {
     address[] public tokens;
     function newToken(uint numberOfTokens, string coinName, string coinSymbol, string description, address CEO) public {
-        address newCampaign = new TokenERC20(numberOfTokens, coinName, coinSymbol, description, msg.sender, CEO);
+        address newCampaign = new TokenERC20(numberOfTokens, coinName, coinSymbol,  msg.sender, CEO);
         tokens.push(newCampaign);
     }
     function getTokensDeployed() public view returns (address[]){
